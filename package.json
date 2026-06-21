@@ -10,7 +10,8 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
     "@cloudflare/workers-types": "^4.20260621.1",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "miniflare": "^4.20260617.1"
   },
   "peerDependencies": {
     "typescript": "^5"
