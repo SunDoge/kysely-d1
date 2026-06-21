@@ -1,0 +1,21 @@
+{
+  "name": "@sundoge/kysely-d1",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "check": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
+    "@cloudflare/workers-types": "^4.20260621.1",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "kysely": "^0.29.2"
+  }
+}
