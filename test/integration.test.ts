@@ -76,7 +76,7 @@ test('D1 integration: should execute batch query successfully', async () => {
   const query2 = db.insertInto('user').values({ name: 'Charlie', age: 35 }).compile();
 
   // Run the batch
-  const results = await dialect.batch([query1, query2] as const);
+  const results = await dialect.batch([query1, query2]);
 
   expect(results).toHaveLength(2);
   const result1 = results[0]!;
@@ -98,3 +98,27 @@ test('D1 integration: should execute batch query successfully', async () => {
     { name: 'Charlie', age: 35 },
   ]);
 });
+
+test('D1 integration: should return correct numAffectedRows for UPDATE', async () => {
+  const result = await db
+    .updateTable('user')
+    .set({ age: 31 })
+    .where('name', '=', 'Alice')
+    .executeTakeFirst();
+
+  // Kysely 的 UpdateResult 使用 numUpdatedRows
+  expect(result.numUpdatedRows).toBe(1n);
+});
+
+test('D1 integration: should return correct numAffectedRows for DELETE', async () => {
+  // Insert a throwaway row
+  await db.insertInto('user').values({ name: 'ToDelete', age: 99 }).execute();
+
+  const result = await db.deleteFrom('user').where('name', '=', 'ToDelete').executeTakeFirst();
+
+  expect(result.numDeletedRows).toBe(1n);
+});
+
+// 注意：D1 限制了对 sqlite_master 等系统表的访问权限（SQLITE_AUTH），
+// 因此 Kysely 的 SqliteIntrospector.getTables() 在 Miniflare 环境下会报错。
+// Schema introspection 测试暂不适用于 D1 环境。

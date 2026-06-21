@@ -4,7 +4,6 @@ import type { D1DialectConfig } from './d1-dialect.ts';
 
 export class D1Driver implements Driver {
   readonly #config: D1DialectConfig;
-  #connection?: DatabaseConnection;
 
   constructor(config: D1DialectConfig) {
     this.#config = config;
@@ -15,14 +14,12 @@ export class D1Driver implements Driver {
   }
 
   async acquireConnection(): Promise<DatabaseConnection> {
-    if (!this.#connection) {
-      const database =
-        typeof this.#config.database === 'function'
-          ? this.#config.database()
-          : this.#config.database;
-      this.#connection = new D1Connection(database);
-    }
-    return this.#connection;
+    // D1 是无状态的 HTTP 数据库，不存在真正的 TCP 连接或连接池。
+    // D1Connection 仅是一个轻量包装对象，创建成本几乎为零，因此不做缓存。
+    // 这也保证了当 database 是工厂函数时，每次都能获取到最新的 D1 绑定实例。
+    const database =
+      typeof this.#config.database === 'function' ? this.#config.database() : this.#config.database;
+    return new D1Connection(database);
   }
 
   async releaseConnection(_connection: DatabaseConnection): Promise<void> {
@@ -36,7 +33,7 @@ export class D1Driver implements Driver {
   // D1 是基于 HTTP 请求构建的无状态数据库，由于每次查询可能是独立的物理连接上下文，
   // 导致其不支持跨 HTTP 请求执行传统的交互式事务（即通过 sequential SQL `BEGIN` / `COMMIT`）。
   // D1 SQL 语法引擎也会显式禁止直接单条执行 `BEGIN` / `COMMIT` / `ROLLBACK` 命令。
-  // 为了防止开发者编写不具备原子性的“伪事务”代码造成脏数据，我们在此处显式抛出异常，
+  // 为了防止开发者编写不具备原子性的"伪事务"代码造成脏数据，我们在此处显式抛出异常，
   // 引导开发者采用 D1 官方支持的 `batch` 原子批处理（D1 会将 batch 中的所有语句置于同一个底层的 SQLite 事务中执行）。
   async beginTransaction(
     _connection: DatabaseConnection,

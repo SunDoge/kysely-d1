@@ -208,3 +208,94 @@ test('D1Dialect serializes bigint parameters to number', async () => {
   expect(q.params[0]).toBe(9007199254740991); // should be mapped to number
   expect(typeof q.params[0]).toBe('number');
 });
+
+test('D1Dialect throws on bigint exceeding Number.MAX_SAFE_INTEGER', async () => {
+  const mockD1 = {
+    prepare() {
+      return {
+        bind() {
+          return { sql: '', params: [] };
+        },
+      } as any;
+    },
+    async batch() {
+      return [] as any[];
+    },
+  } as unknown as D1Database;
+
+  const dialect = new D1Dialect({ database: mockD1 });
+  const db = new Kysely<{ test: { id: bigint; name: string } }>({
+    dialect,
+  });
+
+  // 2^53 exceeds Number.MAX_SAFE_INTEGER (2^53 - 1)
+  const unsafeValue = BigInt(2) ** BigInt(53);
+  const query = db.selectFrom('test').selectAll().where('id', '=', unsafeValue).compile();
+
+  expect(dialect.batch([query])).rejects.toThrow('exceeds Number.MAX_SAFE_INTEGER');
+});
+
+test('D1Dialect executeQuery converts bigint parameters to number', async () => {
+  const executedQueries: { sql: string; params: any[] }[] = [];
+
+  const mockD1 = {
+    prepare(sql: string) {
+      return {
+        bind(...params: any[]) {
+          return {
+            async all() {
+              executedQueries.push({ sql, params });
+              return { success: true, results: [], meta: {} } as any;
+            },
+          };
+        },
+      } as any;
+    },
+  } as unknown as D1Database;
+
+  const db = new Kysely<{ test: { id: bigint; name: string } }>({
+    dialect: new D1Dialect({ database: mockD1 }),
+  });
+
+  await db.selectFrom('test').selectAll().where('id', '=', 42n).execute();
+
+  expect(executedQueries).toHaveLength(1);
+  const q = executedQueries[0]!;
+  expect(q.params[0]).toBe(42);
+  expect(typeof q.params[0]).toBe('number');
+});
+
+test('D1Dialect supports factory function for database config', async () => {
+  let callCount = 0;
+  const mockD1 = {
+    prepare(_sql: string) {
+      return {
+        bind(..._params: any[]) {
+          return {
+            async all() {
+              return { success: true, results: [{ count: 1 }], meta: {} } as any;
+            },
+          };
+        },
+        async all() {
+          return { success: true, results: [{ count: 1 }], meta: {} } as any;
+        },
+      } as any;
+    },
+  } as unknown as D1Database;
+
+  const factory = () => {
+    callCount++;
+    return mockD1;
+  };
+
+  const db = new Kysely<{ test: { id: number; name: string } }>({
+    dialect: new D1Dialect({ database: factory }),
+  });
+
+  // Each query should invoke the factory function (no connection caching)
+  await db.selectFrom('test').selectAll().execute();
+  await db.selectFrom('test').selectAll().execute();
+
+  expect(callCount).toBe(2);
+});

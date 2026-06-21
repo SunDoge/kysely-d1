@@ -1,5 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CompiledQuery, DatabaseConnection, QueryResult } from 'kysely';
+import { prepareStatement } from './d1-utils.ts';
 
 export class D1Connection implements DatabaseConnection {
   readonly #db: D1Database;
@@ -9,19 +10,9 @@ export class D1Connection implements DatabaseConnection {
   }
 
   async executeQuery<O>(compiledQuery: CompiledQuery): Promise<QueryResult<O>> {
-    let stmt = this.#db.prepare(compiledQuery.sql);
-
-    if (compiledQuery.parameters.length > 0) {
-      // Cloudflare D1 驱动层在绑定参数时，如果直接传入 JS bigint 类型值（例如 1n），
-      // 会触发运行时序列化错误 (Do not know how to serialize a BigInt)。
-      // 这里的处理是将 bigint 安全地转换为 number。SQLite 的整型大小符合 Number.MAX_SAFE_INTEGER，
-      // 大部分自增 ID 和常规数值转换后不会有精度丢失风险。
-      const boundParams = compiledQuery.parameters.map((p) =>
-        typeof p === 'bigint' ? Number(p) : p
-      );
-      stmt = stmt.bind(...boundParams);
-    }
-
+    // D1 没有区分读写操作的 API，统一使用 all() 来获取结果和元数据。
+    // 对于写操作（INSERT/UPDATE/DELETE），all() 同样会返回正确的 meta 信息。
+    const stmt = prepareStatement(this.#db, compiledQuery);
     const result = await stmt.all<O>();
     const meta = result.meta || {};
 
