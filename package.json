@@ -1,29 +1,36 @@
 {
   "name": "@sundoge/kysely-d1",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Kysely dialect for Cloudflare D1",
   "license": "MIT",
-  "module": "src/index.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
   },
   "files": [
+    "dist",
     "src"
   ],
   "keywords": [
     "kysely",
     "cloudflare",
     "d1",
-    "sqlite",
-    "orm",
     "query-builder"
   ],
   "scripts": {
+    "build": "tsup",
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check --write .",
-    "test": "bun test"
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
   },
   "peerDependencies": {
     "kysely": "^0.29.2",
@@ -36,6 +43,7 @@
     "@types/bun": "latest",
     "kysely": "^0.29.2",
     "miniflare": "^4.20260617.1",
+    "tsup": "^8.5.1",
     "typescript": "^6.0.3"
   }
 }
