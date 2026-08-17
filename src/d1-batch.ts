@@ -2,26 +2,29 @@ import type { D1Database } from '@cloudflare/workers-types';
 import type { CompiledQuery, QueryResult } from 'kysely';
 import { prepareStatement } from './d1-utils.ts';
 
-// biome-ignore lint/suspicious/noExplicitAny: tuple inference requires queries with different result types
-export type BatchResult<T extends readonly CompiledQuery<any>[]> = {
-  -readonly [K in keyof T]: QueryResult<T[K] extends CompiledQuery<infer O> ? O : unknown>;
+export interface BatchQuery<O = unknown> {
+  compile(): CompiledQuery<O>;
+  execute(): Promise<readonly O[]>;
+}
+
+type QueryOutput<Q> = Q extends { execute(): Promise<readonly (infer O)[]> } ? O : never;
+
+export type BatchResult<T extends readonly BatchQuery[]> = {
+  -readonly [K in keyof T]: QueryResult<QueryOutput<T[K]>>;
 };
 
-/** Executes compiled queries atomically using D1's native batch API. */
-// biome-ignore lint/suspicious/noExplicitAny: tuple inference requires queries with different result types
-export async function batch<const T extends readonly CompiledQuery<any>[]>(
+/** Compiles and executes Kysely query builders atomically using D1's native batch API. */
+export async function batch<const T extends readonly BatchQuery[]>(
   database: D1Database,
-  compiledQueries: T
+  queries: T
 ): Promise<BatchResult<T>> {
-  if (compiledQueries.length === 0) {
-    // biome-ignore lint/suspicious/noExplicitAny: an empty tuple is a valid mapped tuple result
-    return [] as any;
+  if (queries.length === 0) {
+    return [] as unknown as BatchResult<T>;
   }
 
-  const statements = compiledQueries.map((query) => prepareStatement(database, query));
+  const statements = queries.map((query) => prepareStatement(database, query.compile()));
 
-  // biome-ignore lint/suspicious/noExplicitAny: D1 cannot express heterogeneous batch result tuples
-  const results = await database.batch<any>(statements);
+  const results = await database.batch<unknown>(statements);
 
   return results.map((result) => {
     const meta = result.meta || {};
@@ -34,6 +37,5 @@ export async function batch<const T extends readonly CompiledQuery<any>[]>(
           ? BigInt(meta.last_row_id)
           : undefined,
     };
-    // biome-ignore lint/suspicious/noExplicitAny: results map back to the input query tuple
-  }) as any;
+  }) as unknown as BatchResult<T>;
 }

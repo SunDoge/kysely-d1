@@ -105,7 +105,7 @@ export default {
 
 ### 3. Atomic Batching with Strict Types
 
-Use D1's native performance batching. Pass multiple compiled Kysely queries to execute them in a single database transaction. The return types are statically typed to match the input query structures.
+Use D1's native performance batching. Pass multiple Kysely query builders to execute them in a single database transaction. The return types are statically typed to match the input query structures.
 
 ```typescript
 import { batch, D1Dialect } from '@sundoge/kysely-d1';
@@ -114,8 +114,8 @@ const db = new Kysely<Database>({
   dialect: new D1Dialect({ database: env.DB }),
 });
 
-const q1 = db.insertInto('users').values({ name: 'Alice' }).compile();
-const q2 = db.selectFrom('users').selectAll().compile();
+const q1 = db.insertInto('users').values({ name: 'Alice' });
+const q2 = db.selectFrom('users').selectAll();
 
 // Statically typed as [QueryResult<InsertResult>, QueryResult<UserTable>]
 const [insertResult, usersResult] = await batch(env.DB, [q1, q2]);

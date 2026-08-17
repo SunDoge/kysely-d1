@@ -1,6 +1,6 @@
-import { expect, test } from 'bun:test';
+import { expect, expectTypeOf, test } from 'bun:test';
 import type { D1Database, D1Result } from '@cloudflare/workers-types';
-import { Kysely } from 'kysely';
+import { type InsertResult, Kysely, type QueryResult } from 'kysely';
 import { batch, D1Dialect } from '../src/index.ts';
 
 test('D1Dialect executes query successfully', async () => {
@@ -113,10 +113,14 @@ test('batch executes queries successfully', async () => {
     dialect,
   });
 
-  const query1 = db.insertInto('test').values({ id: 1, name: 'Alice' }).compile();
-  const query2 = db.insertInto('test').values({ id: 2, name: 'Bob' }).compile();
+  const query1 = db.insertInto('test').values({ id: 1, name: 'Alice' });
+  const query2 = db.selectFrom('test').selectAll().where('id', '=', 2);
 
   const results = await batch(mockD1, [query1, query2]);
+
+  expectTypeOf(results).toEqualTypeOf<
+    [QueryResult<InsertResult>, QueryResult<{ id: number; name: string }>]
+  >();
 
   expect(results).toHaveLength(2);
   const result1 = results[0]!;
@@ -134,8 +138,8 @@ test('batch executes queries successfully', async () => {
   const batchQ2 = executedBatchQueries[1]!;
   expect(batchQ1.sql).toBe('insert into "test" ("id", "name") values (?, ?)');
   expect(batchQ1.params).toEqual([1, 'Alice']);
-  expect(batchQ2.sql).toBe('insert into "test" ("id", "name") values (?, ?)');
-  expect(batchQ2.params).toEqual([2, 'Bob']);
+  expect(batchQ2.sql).toBe('select * from "test" where "id" = ?');
+  expect(batchQ2.params).toEqual([2]);
 });
 
 test('D1Dialect throws error when starting an interactive transaction', async () => {
@@ -194,11 +198,7 @@ test('batch serializes bigint parameters to number', async () => {
     dialect,
   });
 
-  const query = db
-    .selectFrom('test')
-    .selectAll()
-    .where('id', '=', 9007199254740991n) // JS safe max int in bigint form
-    .compile();
+  const query = db.selectFrom('test').selectAll().where('id', '=', 9007199254740991n); // JS safe max int in bigint form
 
   await batch(mockD1, [query]);
 
@@ -229,7 +229,7 @@ test('batch throws on bigint exceeding Number.MAX_SAFE_INTEGER', async () => {
 
   // 2^53 exceeds Number.MAX_SAFE_INTEGER (2^53 - 1)
   const unsafeValue = BigInt(2) ** BigInt(53);
-  const query = db.selectFrom('test').selectAll().where('id', '=', unsafeValue).compile();
+  const query = db.selectFrom('test').selectAll().where('id', '=', unsafeValue);
 
   expect(batch(mockD1, [query])).rejects.toThrow('exceeds Number.MAX_SAFE_INTEGER');
 });

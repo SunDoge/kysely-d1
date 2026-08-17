@@ -71,9 +71,9 @@ test('D1 integration: should insert and select rows successfully', async () => {
 });
 
 test('D1 integration: should execute batch query successfully', async () => {
-  const query1 = db.insertInto('user').values({ name: 'Bob', age: 25 }).compile();
+  const query1 = db.insertInto('user').values({ name: 'Bob', age: 25 });
 
-  const query2 = db.insertInto('user').values({ name: 'Charlie', age: 35 }).compile();
+  const query2 = db.insertInto('user').values({ name: 'Charlie', age: 35 });
 
   // Run the batch
   const results = await batch(d1, [query1, query2]);
