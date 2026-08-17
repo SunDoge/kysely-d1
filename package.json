@@ -1,17 +1,23 @@
 {
   "name": "@sundoge/kysely-d1",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Kysely dialect for Cloudflare D1",
   "license": "MIT",
+  "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "files": [
@@ -25,7 +31,7 @@
     "query-builder"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check --write .",
@@ -43,7 +49,7 @@
     "@types/bun": "latest",
     "kysely": "^0.29.2",
     "miniflare": "^4.20260617.1",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.14",
     "typescript": "^6.0.3"
   }
 }
