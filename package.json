@@ -32,8 +32,12 @@
   ],
   "scripts": {
     "build": "tsdown",
+    "ci": "biome ci .",
     "format": "biome format --write .",
     "lint": "biome lint .",
+    "typecheck": "tsc --noEmit",
+    "publint": "publint",
+    "attw": "attw --pack .",
     "check": "biome check --write .",
     "test": "bun test",
     "prepublishOnly": "bun run build"
@@ -44,11 +48,13 @@
     "typescript": ">=5.0.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "^2.5.0",
     "@cloudflare/workers-types": "^4.20260621.1",
     "@types/bun": "latest",
     "kysely": "^0.29.2",
     "miniflare": "^4.20260617.1",
+    "publint": "^0.3.23",
     "tsdown": "^0.22.14",
     "typescript": "^6.0.3"
   }
