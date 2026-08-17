@@ -40,19 +40,19 @@ export class D1Driver implements Driver {
     _settings: TransactionSettings
   ): Promise<void> {
     throw new Error(
-      'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use dialect.batch() instead.'
+      'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use batch() instead.'
     );
   }
 
   async commitTransaction(_connection: DatabaseConnection): Promise<void> {
     throw new Error(
-      'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use dialect.batch() instead.'
+      'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use batch() instead.'
     );
   }
 
   async rollbackTransaction(_connection: DatabaseConnection): Promise<void> {
     throw new Error(
-      'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use dialect.batch() instead.'
+      'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use batch() instead.'
     );
   }
 }

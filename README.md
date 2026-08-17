@@ -15,8 +15,8 @@ Compared to other Kysely D1 dialects (like `kysely-d1`), `@sundoge/kysely-d1` pr
 | Feature | `@sundoge/kysely-d1` | `aidenwallis/kysely-d1` | Why it matters |
 | :--- | :---: | :---: | :--- |
 | **Dynamic Database Getter** | **Yes** (`() => D1Database`) | No (Static only) | Crucial for SSR/Next.js/Pages where environment bindings (`env.DB`) are only available per-request rather than at startup/module-evaluation time. |
-| **Native D1 Batching** | **Yes** (via `dialect.batch(...)`) | No | Executes multiple queries atomically in a single network request to D1, reducing HTTP overhead. |
-| **Tuple Type Inference** | **Yes** (Strict Tuple Output) | No | `dialect.batch([q1, q2])` automatically infers the return type as `[QueryResult<T1>, QueryResult<T2>]` without manual casting. |
+| **Native D1 Batching** | **Yes** (via `batch(...)`) | No | Executes multiple queries atomically in a single network request to D1, reducing HTTP overhead. |
+| **Tuple Type Inference** | **Yes** (Strict Tuple Output) | No | `batch(database, [q1, q2])` automatically infers the return type as `[QueryResult<T1>, QueryResult<T2>]` without manual casting. |
 | **Safe `BigInt` Binding** | **Yes** (Auto-serializes) | No | D1 normally crashes when binding JS `bigint` (e.g. `1n`). We automatically convert it to `number` if it fits within safe limits, or throw a clear error. |
 | **Modern Built-in Tests** | **Yes** (Miniflare 4 + Bun) | Prettier / Pre-v4 | Validated under mock workers and modern sandbox runtimes. |
 
@@ -108,14 +108,17 @@ export default {
 Use D1's native performance batching. Pass multiple compiled Kysely queries to execute them in a single database transaction. The return types are statically typed to match the input query structures.
 
 ```typescript
-const dialect = new D1Dialect({ database: env.DB });
-const db = new Kysely<Database>({ dialect });
+import { batch, D1Dialect } from '@sundoge/kysely-d1';
+
+const db = new Kysely<Database>({
+  dialect: new D1Dialect({ database: env.DB }),
+});
 
 const q1 = db.insertInto('users').values({ name: 'Alice' }).compile();
 const q2 = db.selectFrom('users').selectAll().compile();
 
 // Statically typed as [QueryResult<InsertResult>, QueryResult<UserTable>]
-const [insertResult, usersResult] = await dialect.batch([q1, q2]);
+const [insertResult, usersResult] = await batch(env.DB, [q1, q2]);
 ```
 
 ### 4. BigInt Support

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { D1Database, D1Result } from '@cloudflare/workers-types';
 import { Kysely } from 'kysely';
-import { D1Dialect } from '../src/index.ts';
+import { batch, D1Dialect } from '../src/index.ts';
 
 test('D1Dialect executes query successfully', async () => {
   const executedQueries: { sql: string; params: any[] }[] = [];
@@ -64,7 +64,7 @@ test('D1Dialect executes query successfully', async () => {
   expect(q.params).toEqual([1]);
 });
 
-test('D1Dialect executes batch successfully', async () => {
+test('batch executes queries successfully', async () => {
   const executedBatchQueries: { sql: string; params: any[] }[] = [];
 
   const mockD1 = {
@@ -116,7 +116,7 @@ test('D1Dialect executes batch successfully', async () => {
   const query1 = db.insertInto('test').values({ id: 1, name: 'Alice' }).compile();
   const query2 = db.insertInto('test').values({ id: 2, name: 'Bob' }).compile();
 
-  const results = await dialect.batch([query1, query2]);
+  const results = await batch(mockD1, [query1, query2]);
 
   expect(results).toHaveLength(2);
   const result1 = results[0]!;
@@ -154,18 +154,17 @@ test('D1Dialect throws error when starting an interactive transaction', async ()
       // should throw before executing callback
     })
   ).rejects.toThrow(
-    'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use dialect.batch() instead.'
+    'Cloudflare D1 does not support interactive transactions spanning multiple HTTP requests. Use batch() instead.'
   );
 });
 
-test('D1Dialect executes batch successfully with empty array', async () => {
+test('batch handles an empty array', async () => {
   const mockD1 = {} as unknown as D1Database;
-  const dialect = new D1Dialect({ database: mockD1 });
-  const results = await dialect.batch([]);
+  const results = await batch(mockD1, []);
   expect(results).toEqual([]);
 });
 
-test('D1Dialect serializes bigint parameters to number', async () => {
+test('batch serializes bigint parameters to number', async () => {
   const executedQueries: { sql: string; params: any[] }[] = [];
 
   const mockD1 = {
@@ -201,7 +200,7 @@ test('D1Dialect serializes bigint parameters to number', async () => {
     .where('id', '=', 9007199254740991n) // JS safe max int in bigint form
     .compile();
 
-  await dialect.batch([query]);
+  await batch(mockD1, [query]);
 
   expect(executedQueries).toHaveLength(1);
   const q = executedQueries[0]!;
@@ -209,7 +208,7 @@ test('D1Dialect serializes bigint parameters to number', async () => {
   expect(typeof q.params[0]).toBe('number');
 });
 
-test('D1Dialect throws on bigint exceeding Number.MAX_SAFE_INTEGER', async () => {
+test('batch throws on bigint exceeding Number.MAX_SAFE_INTEGER', async () => {
   const mockD1 = {
     prepare() {
       return {
@@ -232,7 +231,7 @@ test('D1Dialect throws on bigint exceeding Number.MAX_SAFE_INTEGER', async () =>
   const unsafeValue = BigInt(2) ** BigInt(53);
   const query = db.selectFrom('test').selectAll().where('id', '=', unsafeValue).compile();
 
-  expect(dialect.batch([query])).rejects.toThrow('exceeds Number.MAX_SAFE_INTEGER');
+  expect(batch(mockD1, [query])).rejects.toThrow('exceeds Number.MAX_SAFE_INTEGER');
 });
 
 test('D1Dialect executeQuery converts bigint parameters to number', async () => {

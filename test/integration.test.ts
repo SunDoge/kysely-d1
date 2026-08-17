@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import type { D1Database } from '@cloudflare/workers-types';
 import { type Generated, Kysely } from 'kysely';
 import { Miniflare } from 'miniflare';
-import { D1Dialect } from '../src/index.ts';
+import { batch, D1Dialect } from '../src/index.ts';
 
 interface UserTable {
   id: Generated<number>;
@@ -15,7 +16,7 @@ interface Database {
 
 let miniflare: Miniflare;
 let db: Kysely<Database>;
-let dialect: D1Dialect;
+let d1: D1Database;
 
 beforeAll(async () => {
   // Start Miniflare with a D1 database configured
@@ -34,12 +35,11 @@ beforeAll(async () => {
   });
 
   // Get the D1 Database binding instance
-  const d1 = await miniflare.getD1Database('DB');
+  d1 = await miniflare.getD1Database('DB');
 
   // Initialize the dialect and Kysely
-  dialect = new D1Dialect({ database: d1 });
   db = new Kysely<Database>({
-    dialect,
+    dialect: new D1Dialect({ database: d1 }),
   });
 
   // Create test table
@@ -76,7 +76,7 @@ test('D1 integration: should execute batch query successfully', async () => {
   const query2 = db.insertInto('user').values({ name: 'Charlie', age: 35 }).compile();
 
   // Run the batch
-  const results = await dialect.batch([query1, query2]);
+  const results = await batch(d1, [query1, query2]);
 
   expect(results).toHaveLength(2);
   const result1 = results[0]!;

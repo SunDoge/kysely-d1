@@ -1,6 +1,6 @@
 {
   "name": "@sundoge/kysely-d1",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Kysely dialect for Cloudflare D1",
   "license": "MIT",
   "sideEffects": false,
