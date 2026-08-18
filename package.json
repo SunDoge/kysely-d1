@@ -2,6 +2,10 @@
   "name": "@sundoge/kysely-d1",
   "version": "0.3.0",
   "description": "Kysely dialect for Cloudflare D1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SunDoge/kysely-d1.git"
+  },
   "license": "MIT",
   "sideEffects": false,
   "main": "./dist/index.cjs",
